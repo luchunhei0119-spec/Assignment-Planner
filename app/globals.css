@@ -24,3 +24,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.flashcard-scene { perspective: 1000px; }
+.flashcard-card {
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+  position: relative;
+}
+.flashcard-card.flipped { transform: rotateY(180deg); }
+.flashcard-front, .flashcard-back {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  position: absolute;
+  inset: 0;
+}
+.flashcard-back { transform: rotateY(180deg); }

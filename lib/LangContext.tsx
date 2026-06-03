@@ -1,0 +1,184 @@
+'use client';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+
+export type Lang = 'zh' | 'en';
+
+interface LangContextType {
+  lang: Lang;
+  toggle: () => void;
+  t: (key: string) => string;
+}
+
+const strings: Record<string, Record<Lang, string | ((...args: number[]) => string)>> = {
+  appTitle:          { zh: '功課計劃助手', en: 'Assignment Planner' },
+  appSubtitle:       { zh: 'AI 智能學習規劃', en: 'AI-powered study planning' },
+  history:           { zh: '歷史記錄', en: 'History' },
+  analyzeDoc:        { zh: '分析文件', en: 'Analyze Doc' },
+  quiz:              { zh: '測驗', en: 'Quiz' },
+  translate:         { zh: '翻譯', en: 'Translate' },
+  importSyllabus:    { zh: '匯入課程大綱', en: 'Import Syllabus' },
+  settings:          { zh: '設定', en: 'Settings' },
+  total:             { zh: '總計', en: 'Total' },
+  dueSoon:           { zh: '即將到期', en: 'Due soon' },
+  completed:         { zh: '已完成', en: 'Completed' },
+  filterAll:         { zh: '全部', en: 'All' },
+  filterUpcoming:    { zh: '待完成', en: 'Upcoming' },
+  filterDone:        { zh: '已完成', en: 'Done' },
+  noAssignments:     { zh: '暫無功課', en: 'No assignments yet' },
+  noAssignmentsDesc: { zh: '貼上課程大綱，AI 會自動提取所有功課。', en: 'Paste your syllabus and AI will extract all your assignments.' },
+  noCategoryItems:   { zh: '此分類暫無功課。', en: 'No assignments in this category.' },
+  dueToday:          { zh: '今日截止', en: 'Due today' },
+  overdue:           { zh: '已逾期', en: 'Overdue' },
+  wrongAnswers:      { zh: '錯題本', en: 'Wrong Answers' },
+  recentAnalyses:    { zh: '最近分析記錄', en: 'Recent Analyses' },
+  newAnalysis:       { zh: '+ 新增', en: '+ New' },
+  flashcards:        { zh: '閃卡', en: 'Flashcards' },
+  deleteAssignment:  { zh: '確定刪除此功課？', en: 'Delete this assignment?' },
+  backToDashboard:   { zh: '← 返回主頁', en: '← Back to Dashboard' },
+  importTitle:       { zh: '從課程大綱匯入', en: 'Import from Syllabus' },
+  importDesc:        { zh: '貼上課程大綱，AI 會提取所有功課及截止日期。', en: 'Paste your syllabus and AI will extract all assignments and deadlines.' },
+  readingFiles:      { zh: '正在讀取檔案...', en: 'Reading files...' },
+  clickAddMore:      { zh: '點擊新增更多檔案', en: 'Click to add more files' },
+  uploadFiles:       { zh: '上載 PDF、Word 或 TXT 檔案', en: 'Upload PDF, Word, or TXT files' },
+  dragDrop:          { zh: '可選擇多個檔案或拖放至此', en: 'Select multiple files or drag and drop' },
+  orPasteText:       { zh: '或貼上文字', en: 'or paste text' },
+  pasteHere:         { zh: '在此貼上課程大綱...', en: 'Paste your syllabus text here...' },
+  extracting:        { zh: '正在提取...', en: 'Extracting...' },
+  extractBtn:        { zh: 'AI 提取功課', en: 'Extract Assignments with AI' },
+  dueDate:           { zh: '截止', en: 'Due' },
+  analyzeTitle:      { zh: '分析文件', en: 'Analyze Document' },
+  analyzeDesc:       { zh: '上載或貼上文件，AI 會為你摘要並標出重點。', en: 'Upload or paste a document — AI will summarize and highlight key points.' },
+  pasteDocHere:      { zh: '在此貼上文件內容...', en: 'Paste your document text here...' },
+  keyPointsSlider:   { zh: '重點數量：', en: 'Key points:' },
+  generatingSummary: { zh: '正在生成摘要...', en: 'Generating summary...' },
+  extractingKP:      { zh: '正在提取重點...', en: 'Extracting key points...' },
+  analyzing:         { zh: '正在分析...', en: 'Analyzing...' },
+  analyzeBtn:        { zh: 'AI 分析', en: 'Analyze with AI' },
+  summary:           { zh: '摘要', en: 'Summary' },
+  keyPointsTitle:    { zh: '重點', en: 'Key Points' },
+  tapToExpand:       { zh: '點擊每個重點查看詳細解釋', en: 'Tap each point for details' },
+  fullText:          { zh: '原文重點標示', en: 'Full Text with Highlights' },
+  askTitle:          { zh: '向 AI 提問', en: 'Ask about this document' },
+  askSubtitle:       { zh: '中英對照回答', en: 'Bilingual answers' },
+  askPlaceholder:    { zh: '輸入任何關於文件的問題...', en: 'Ask a question about this document...' },
+  askPrompt:         { zh: '問任何關於文件嘅問題', en: 'Ask anything about the document' },
+  send:              { zh: '發送', en: 'Send' },
+  giveExample:       { zh: '俾我一個例子', en: 'Give me an example' },
+  explainMore:       { zh: '詳細解釋', en: 'Explain in more depth' },
+  sugQ1:             { zh: '總結主要論點', en: 'Summarize the main argument' },
+  sugQ2:             { zh: '最重要的概念係咩？', en: 'What are the most important concepts?' },
+  sugQ3:             { zh: '俾一個實際例子', en: 'Give me a real-world example' },
+  quizTitle:         { zh: '測驗生成器', en: 'Quiz Generator' },
+  quizDesc:          { zh: '上載筆記，AI 會生成題目測試你的知識。', en: 'Upload notes and AI will generate questions to test your knowledge.' },
+  questionType:      { zh: '題目類型', en: 'Question Type' },
+  mcLabel:           { zh: '選擇題', en: 'Multiple Choice' },
+  mcDesc:            { zh: '4 個選項，點擊作答', en: '4 options, click to answer' },
+  shortLabel:        { zh: '簡答題', en: 'Short Question' },
+  shortDesc:         { zh: '1-3 句回答', en: '1–3 sentence answer' },
+  longLabel:         { zh: '長答題', en: 'Long Question' },
+  longDesc:          { zh: '詳細作答', en: 'Detailed essay answer' },
+  pasteNotesHere:    { zh: '在此貼上筆記或學習資料...', en: 'Paste your notes or study material here...' },
+  generating:        { zh: '正在生成題目...', en: 'Generating questions...' },
+  grading:           { zh: '正在批改...', en: 'Grading...' },
+  submitAnswer:      { zh: '提交答案', en: 'Submit Answer' },
+  modelAnswer:       { zh: '參考答案', en: 'Model Answer' },
+  back:              { zh: '← 返回', en: '← Back' },
+  next:              { zh: '下一題 →', en: 'Next →' },
+  finish:            { zh: '完成', en: 'Finish' },
+  excellent:         { zh: '非常好！', en: 'Excellent!' },
+  goodEffort:        { zh: '繼續努力！', en: 'Good effort!' },
+  keepStudying:      { zh: '繼續溫習！', en: 'Keep studying!' },
+  tryAgain:          { zh: '重新嘗試', en: 'Try Again' },
+  newQuiz:           { zh: '新測驗', en: 'New Quiz' },
+  correct:           { zh: '正確！', en: 'Correct!' },
+  incorrect:         { zh: '答錯了。', en: 'Incorrect.' },
+  writeShort:        { zh: '用 1-3 句話作答...', en: 'Write your answer in 1–3 sentences...' },
+  writeLong:         { zh: '詳細作答...', en: 'Write a detailed answer...' },
+  tapReveal:         { zh: '點擊卡片查看解釋', en: 'Tap card to reveal' },
+  tapFlipBack:       { zh: '點擊返回正面', en: 'Tap to flip back' },
+  stillLearning:     { zh: '繼續學習', en: 'Still learning' },
+  gotIt:             { zh: '記住了！✓', en: 'Got it! ✓' },
+  roundComplete:     { zh: '完成一輪！', en: 'Round Complete!' },
+  known:             { zh: '已記住', en: 'known' },
+  toReview:          { zh: '待複習', en: 'to review' },
+  shuffleAll:        { zh: '重新洗牌', en: 'Shuffle all cards' },
+  done:              { zh: '完成', en: 'Done' },
+  wrongAnswersTitle: { zh: '錯題本', en: 'Wrong Answers' },
+  clearAll:          { zh: '清除全部', en: 'Clear all' },
+  noWrongAnswers:    { zh: '暫無錯題！', en: 'No wrong answers yet!' },
+  noWrongDesc:       { zh: '完成測驗後，錯題會自動儲存在這裡。', en: 'Complete a quiz and wrong answers will appear here.' },
+  startQuiz:         { zh: '開始測驗', en: 'Start a Quiz' },
+  yourAnswer:        { zh: '你的答案', en: 'Your answer' },
+  removeFromReview:  { zh: '從錯題本移除', en: 'Remove from review' },
+  clearAllConfirm:   { zh: '確定清除所有錯題？', en: 'Clear all wrong answers?' },
+  less:              { zh: '收起', en: 'Less' },
+  more:              { zh: '展開', en: 'More' },
+  historyTitle:      { zh: '分析記錄', en: 'Analysis History' },
+  searchPlaceholder: { zh: '搜尋標題、摘要、重點...', en: 'Search titles, summaries, key points...' },
+  noHistory:         { zh: '暫無記錄', en: 'No history yet' },
+  noHistoryDesc:     { zh: '分析過的文件會顯示在這裡。', en: 'Analyzed documents will appear here.' },
+  analyzeDoc2:       { zh: '分析文件', en: 'Analyze a Document' },
+  foundInText:       { zh: '在原文中找到', en: 'Found in document text' },
+  open:              { zh: '打開', en: 'Open' },
+  deleteRecord:      { zh: '刪除記錄', en: 'Delete record' },
+  newBtn:            { zh: '+ 新增', en: '+ New' },
+  settingsTitle:     { zh: '設定', en: 'Settings' },
+  settingsDesc:      { zh: '選擇使用 AI 功能的方式。', en: 'Choose how you want to access the AI features.' },
+  ownApiKey:         { zh: '使用自己的 API Key', en: 'My Own API Key' },
+  accessCode:        { zh: '訪問碼', en: 'Access Code' },
+  apiKeyDesc:        { zh: '輸入你的 Anthropic API Key。在 console.anthropic.com 申請。', en: 'Enter your own Anthropic API key. Get one at console.anthropic.com' },
+  apiKeyNote:        { zh: 'Key 儲存在瀏覽器本地，不會上傳至伺服器。', en: 'Your key is stored locally in your browser and never sent to our servers.' },
+  accessCodeDesc:    { zh: '輸入應用程式擁有者提供的訪問碼以使用其 API。', en: 'Enter the access code provided by the app owner to use their API.' },
+  accessCodeNote:    { zh: '請聯絡應用程式擁有者索取訪問碼。', en: 'Contact the app owner to request an access code.' },
+  saveContinue:      { zh: '儲存並繼續', en: 'Save & Continue' },
+  saving:            { zh: '已儲存！正在跳轉...', en: 'Saved! Redirecting...' },
+  usingOwnKey:       { zh: '使用自己的 API Key', en: 'Using your own API key' },
+  usingAccessCode:   { zh: '使用訪問碼', en: 'Using access code' },
+  remove:            { zh: '移除', en: 'Remove' },
+  translateTitle:    { zh: '翻譯', en: 'Translate' },
+  translateDesc:     { zh: '中英互譯，支援上載文件。', en: 'Translate between English and Traditional Chinese.' },
+  toZh:             { zh: '翻譯至繁體中文', en: 'Translate to 繁體中文' },
+  toEn:             { zh: '翻譯至英文', en: 'Translate to English' },
+  translating:      { zh: '正在翻譯...', en: 'Translating...' },
+  translationHere:  { zh: '翻譯結果會顯示在這裡...', en: 'Translation will appear here...' },
+  copy:             { zh: '複製', en: 'Copy' },
+  input:            { zh: '輸入', en: 'Input' },
+  translation:      { zh: '翻譯', en: 'Translation' },
+  uploadFile:       { zh: '上載檔案', en: 'Upload files' },
+};
+
+const LangContext = createContext<LangContextType>({
+  lang: 'zh',
+  toggle: () => {},
+  t: (k) => k,
+});
+
+export function LangProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>('zh');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('app-lang') as Lang | null;
+    if (stored === 'en' || stored === 'zh') setLangState(stored);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setLangState(prev => {
+      const next: Lang = prev === 'zh' ? 'en' : 'zh';
+      localStorage.setItem('app-lang', next);
+      return next;
+    });
+  }, []);
+
+  const t = useCallback((key: string): string => {
+    const entry = strings[key];
+    if (!entry) return key;
+    const val = entry[lang];
+    return typeof val === 'string' ? val : key;
+  }, [lang]);
+
+  return <LangContext.Provider value={{ lang, toggle, t }}>{children}</LangContext.Provider>;
+}
+
+export function useLang() {
+  return useContext(LangContext);
+}
