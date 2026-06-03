@@ -12,6 +12,7 @@ interface KeyPoint {
   zh: string;
   detail: string;
   detailZh: string;
+  source?: string;
 }
 
 interface AnalysisResult {
