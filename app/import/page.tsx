@@ -64,7 +64,7 @@ export default function ImportPage() {
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, selected: !item.selected } : item));
   }
 
-  function handleImport() {
+  async function handleImport() {
     const selected = items.filter(i => i.selected).map(({ selected: _, ...a }) => ({
       ...a,
       id: generateId(),
@@ -72,7 +72,7 @@ export default function ImportPage() {
       studyPlan: [],
       createdAt: new Date().toISOString(),
     }));
-    addAssignments(selected);
+    await addAssignments(selected);
     router.push('/');
   }
 

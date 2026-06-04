@@ -28,7 +28,7 @@ export default function HistoryPage() {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  useEffect(() => { setAll(getAnalyses()); }, []);
+  useEffect(() => { getAnalyses().then(setAll); }, []);
 
   const results = query.trim()
     ? all.filter(a => {
@@ -50,9 +50,9 @@ export default function HistoryPage() {
     });
   }
 
-  function handleDelete(id: string) {
-    deleteAnalysis(id);
-    setAll(getAnalyses());
+  async function handleDelete(id: string) {
+    await deleteAnalysis(id);
+    getAnalyses().then(setAll);
   }
 
   return (

@@ -30,14 +30,16 @@ export default function AssignmentPage() {
   const [loadingPlan, setLoadingPlan] = useState(false);
 
   useEffect(() => {
-    const found = getAssignments().find(a => a.id === id);
-    if (!found) { router.push('/'); return; }
-    setAssignment(found);
+    getAssignments().then(all => {
+      const found = all.find(a => a.id === id);
+      if (!found) { router.push('/'); return; }
+      setAssignment(found);
+    });
   }, [id, router]);
 
-  function save(updated: Assignment) {
+  async function save(updated: Assignment) {
     setAssignment(updated);
-    updateAssignment(updated);
+    await updateAssignment(updated);
   }
 
   async function handleBreakdown() {

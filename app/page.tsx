@@ -35,17 +35,26 @@ export default function Dashboard() {
   const [wrongCount, setWrongCount] = useState(0);
 
   useEffect(() => {
-    setAssignments(getAssignments());
-    setAnalyses(getAnalyses().slice(0, 3));
-    setWrongCount(getWrongAnswers().length);
-    if (!hasAuth()) router.push('/settings');
+    async function load() {
+      const { data: { user } } = await (await import('@/lib/supabase')).supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+      const [asgn, analyses, wrongs] = await Promise.all([
+        getAssignments(),
+        getAnalyses(),
+        getWrongAnswers(),
+      ]);
+      setAssignments(asgn);
+      setAnalyses(analyses.slice(0, 3));
+      setWrongCount(wrongs.length);
+    }
+    load();
   }, []);
 
-  function handleDelete(e: React.MouseEvent, id: string) {
+  async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
     if (!confirm(t('deleteAssignment') as string)) return;
-    deleteAssignment(id);
-    setAssignments(getAssignments());
+    await deleteAssignment(id);
+    setAssignments(await getAssignments());
   }
 
   const filtered = assignments.filter(a => {

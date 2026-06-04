@@ -116,12 +116,13 @@ function AnalyzeContent() {
   useEffect(() => {
     const id = params.get('id');
     if (!id) return;
-    const record = getAnalysis(id);
-    if (record) {
-      setResult({ summary: record.summary, keyPoints: record.keyPoints, highlights: record.highlights });
-      if (record.text) setText(record.text);
-      setSavedId(id);
-    }
+    getAnalysis(id).then(record => {
+      if (record) {
+        setResult({ summary: record.summary, keyPoints: record.keyPoints, highlights: record.highlights });
+        if (record.text) setText(record.text);
+        setSavedId(id);
+      }
+    });
   }, []);
 
   async function handleFilesUpload(files: FileList | File[]) {
@@ -199,7 +200,7 @@ function AnalyzeContent() {
       setResult(prev => prev ? { ...prev, keyPoints, highlights } : null);
       // Save to history
       const title = text.trim().split('\n')[0].slice(0, 60) || 'Untitled';
-      const record = saveAnalysis({ title, summary: d1.summary, keyPoints, highlights, text: text.slice(0, 30000) });
+      const record = await saveAnalysis({ title, summary: d1.summary, keyPoints, highlights, text: text.slice(0, 30000) });
       setSavedId(record.id);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');

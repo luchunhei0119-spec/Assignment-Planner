@@ -13,7 +13,7 @@ export default function ReviewPage() {
   const [answers, setAnswers] = useState<WrongAnswer[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  useEffect(() => { setAnswers(getWrongAnswers()); }, []);
+  useEffect(() => { getWrongAnswers().then(setAnswers); }, []);
 
   function toggle(id: string) {
     setExpanded(prev => {
@@ -23,14 +23,14 @@ export default function ReviewPage() {
     });
   }
 
-  function handleDelete(id: string) {
-    deleteWrongAnswer(id);
-    setAnswers(getWrongAnswers());
+  async function handleDelete(id: string) {
+    await deleteWrongAnswer(id);
+    getWrongAnswers().then(setAnswers);
   }
 
-  function handleClear() {
+  async function handleClear() {
     if (!confirm('Clear all wrong answers?')) return;
-    clearWrongAnswers();
+    await clearWrongAnswers();
     setAnswers([]);
   }
 

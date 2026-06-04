@@ -23,11 +23,12 @@ function FlashcardsContent() {
 
   useEffect(() => {
     if (!id) return;
-    const record = getAnalysis(id);
-    if (record) {
-      setCards(shuffle(record.keyPoints));
-      setTitle(record.title);
-    }
+    getAnalysis(id).then(record => {
+      if (record) {
+        setCards(shuffle(record.keyPoints));
+        setTitle(record.title);
+      }
+    });
   }, [id]);
 
   function handleKnow() {

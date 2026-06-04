@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 
 export async function POST(req: NextRequest) {
-  let client; try { client = getClient(req); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req); } catch { return unauthorized(); }
   const { question, modelAnswer, userAnswer, questionType, lang = 'en' } = await req.json();
   if (!userAnswer?.trim()) {
     return NextResponse.json({ error: 'No answer provided' }, { status: 400 });

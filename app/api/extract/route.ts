@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 
 export async function POST(req: NextRequest) {
-  let client; try { client = getClient(req); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req); } catch { return unauthorized(); }
   const { syllabus } = await req.json();
   if (!syllabus?.trim()) {
     return NextResponse.json({ error: 'No syllabus text provided' }, { status: 400 });

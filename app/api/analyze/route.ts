@@ -2,7 +2,7 @@ import { getClient, unauthorized } from '@/lib/getClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  let client; try { client = getClient(req, { cache: true }); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req, { cache: true }); } catch { return unauthorized(); }
   const { text: rawText, keyPointCount = 10, part = 'all' } = await req.json();
   if (!rawText?.trim()) {
     return NextResponse.json({ error: 'No text provided' }, { status: 400 });
