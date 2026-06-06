@@ -49,9 +49,12 @@ export async function saveAnalysis(record: Omit<AnalysisRecord, 'id' | 'date'>):
 }
 
 export async function getAnalyses(): Promise<AnalysisRecord[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from('analysis_history')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(20);
   if (error || !data) return [];
@@ -109,9 +112,12 @@ export async function saveWrongAnswers(answers: Omit<WrongAnswer, 'id'>[]): Prom
 }
 
 export async function getWrongAnswers(): Promise<WrongAnswer[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from('wrong_answers')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(200);
   if (error || !data) return [];

@@ -16,7 +16,9 @@ function fromRow(row: Record<string, unknown>): Assignment {
 }
 
 export async function getAssignments(): Promise<Assignment[]> {
-  const { data, error } = await supabase.from('assignments').select('*').order('deadline');
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase.from('assignments').select('*').eq('user_id', user.id).order('deadline');
   if (error || !data) return [];
   return data.map(fromRow);
 }
