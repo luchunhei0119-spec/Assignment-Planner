@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [hasCode, setHasCode] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [forgotStatus, setForgotStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   useEffect(() => {
     const code = localStorage.getItem('access-code');
@@ -23,6 +24,16 @@ export default function SettingsPage() {
     localStorage.removeItem('user-api-key');
     setSaved(true);
     setTimeout(() => router.push('/'), 700);
+  }
+
+  async function handleForgot() {
+    setForgotStatus('sending');
+    try {
+      const res = await fetch('/api/forgot-code', { method: 'POST' });
+      setForgotStatus(res.ok ? 'sent' : 'error');
+    } catch {
+      setForgotStatus('error');
+    }
   }
 
   function handleClear() {
@@ -130,9 +141,16 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Contact the app owner for an access code
-        </p>
+        <div className="text-center mt-6 space-y-2">
+          <button
+            onClick={handleForgot}
+            disabled={forgotStatus === 'sending' || forgotStatus === 'sent'}
+            className="text-xs text-violet-500 hover:text-violet-700 underline underline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {forgotStatus === 'sending' ? 'Sending...' : forgotStatus === 'sent' ? '✓ Email sent to your Gmail!' : forgotStatus === 'error' ? '✗ Failed, try again' : 'Forgot access code?'}
+          </button>
+          <p className="text-xs text-gray-400">Contact the app owner for an access code</p>
+        </div>
       </div>
     </div>
   );
