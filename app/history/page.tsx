@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAnalyses, deleteAnalysis, type AnalysisRecord } from '@/lib/history';
+import { useLang } from '@/lib/LangContext';
+import { NavBar } from '@/app/components/NavBar';
+import { BottomNav } from '@/app/components/BottomNav';
 
 function highlight(text: string, query: string) {
   if (!query.trim()) return <span>{text}</span>;
@@ -18,12 +21,9 @@ function highlight(text: string, query: string) {
   );
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('zh-HK', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 export default function HistoryPage() {
   const router = useRouter();
+  const { t, lang } = useLang();
   const [all, setAll] = useState<AnalysisRecord[]>([]);
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -56,34 +56,27 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pb-24">
       <div className="max-w-2xl mx-auto">
-        <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
-          ← Back to Dashboard
-        </button>
-
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Analysis History</h1>
-            <p className="text-sm text-gray-400 mt-0.5">{all.length} records saved</p>
-          </div>
-          <button onClick={() => router.push('/analyze')}
-            className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition">
-            + New
-          </button>
-        </div>
+        <NavBar back="/" title={t('historyTitle')}
+          right={
+            <button onClick={() => router.push('/analyze')}
+              className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition">
+              {t('newBtn')}
+            </button>
+          }
+        />
+        <p className="text-sm text-gray-400 -mt-4 mb-4">{all.length} {t('recordsCount')}</p>
 
         <div className="relative mb-5">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input
-            type="text"
+          <input type="text"
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
-            placeholder="Search titles, summaries, key points..."
+            placeholder={t('searchPlaceholder')}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            autoFocus
           />
           {query && (
             <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -98,14 +91,14 @@ export default function HistoryPage() {
 
         {all.length === 0 ? (
           <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 text-center">
-            <p className="text-gray-500 font-medium mb-1">No history yet</p>
-            <p className="text-sm text-gray-400 mb-5">Analyzed documents will appear here.</p>
+            <p className="text-gray-500 font-medium mb-1">{t('noHistory')}</p>
+            <p className="text-sm text-gray-400 mb-5">{t('noHistoryDesc')}</p>
             <button onClick={() => router.push('/analyze')} className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition">
-              Analyze a Document
+              {t('analyzeDoc2')}
             </button>
           </div>
         ) : results.length === 0 ? (
-          <p className="text-center text-gray-400 text-sm py-12">No results found for "{query}"</p>
+          <p className="text-center text-gray-400 text-sm py-12">{t('noResults')}: "{query}"</p>
         ) : (
           <div className="space-y-3">
             {results.map(a => (
@@ -116,7 +109,7 @@ export default function HistoryPage() {
                       <p className="font-medium text-gray-900 leading-snug">
                         {highlight(a.title, query)}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(a.date)} · {a.keyPoints.length} key points</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{new Date(a.date).toLocaleDateString(lang === 'zh' ? 'zh-HK' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' })} · {a.keyPoints.length} {t('keyPointsCount')}</p>
                       <p className="text-sm text-gray-500 mt-2 line-clamp-2 leading-relaxed">
                         {highlight(a.summary, query)}
                       </p>
@@ -124,17 +117,17 @@ export default function HistoryPage() {
                     <div className="flex gap-1.5 flex-shrink-0 ml-2">
                       <button onClick={() => router.push(`/analyze?id=${a.id}`)}
                         className="text-xs px-2 py-1 bg-violet-600 text-white rounded-md hover:bg-violet-700 transition">
-                        Open
+                        {t('open')}
                       </button>
                       {a.keyPoints.length > 0 && (
                         <button onClick={() => router.push(`/flashcards?id=${a.id}`)}
                           className="text-xs px-2 py-1 bg-violet-100 text-violet-600 rounded-md hover:bg-violet-200 transition">
-                          Flashcards
+                          {t('flashcards')}
                         </button>
                       )}
                       <button onClick={() => toggle(a.id)}
                         className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition">
-                        {expanded.has(a.id) ? 'Less' : 'More'}
+                        {expanded.has(a.id) ? t('less') : t('more')}
                       </button>
                     </div>
                   </div>
@@ -144,7 +137,7 @@ export default function HistoryPage() {
                   <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-3">
                     {a.keyPoints.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-2">Key Points</p>
+                        <p className="text-xs font-medium text-gray-500 mb-2">{t('keyPointsTitle')}</p>
                         <ul className="space-y-1.5">
                           {a.keyPoints.map((k, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm">
@@ -161,7 +154,7 @@ export default function HistoryPage() {
 
                     {query && a.text && a.text.toLowerCase().includes(query.toLowerCase()) && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-2">Found in document text</p>
+                        <p className="text-xs font-medium text-gray-500 mb-2">{t('foundInText')}</p>
                         {(() => {
                           const idx = a.text.toLowerCase().indexOf(query.toLowerCase());
                           const start = Math.max(0, idx - 80);
@@ -173,7 +166,7 @@ export default function HistoryPage() {
                     )}
 
                     <button onClick={() => handleDelete(a.id)} className="text-xs text-red-400 hover:text-red-600 transition">
-                      Delete record
+                      {t('deleteRecord')}
                     </button>
                   </div>
                 )}
@@ -182,6 +175,7 @@ export default function HistoryPage() {
           </div>
         )}
       </div>
+      <BottomNav />
     </div>
   );
 }

@@ -1,9 +1,12 @@
 'use client';
 
-import { apiFetch, hasAuth } from '@/lib/apiFetch';
-import { saveWrongAnswers } from '@/lib/history';
+import { apiFetch } from '@/lib/apiFetch';
+import { saveWrongAnswers, saveAnalysis } from '@/lib/history';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLang } from '@/lib/LangContext';
+import { NavBar } from '@/app/components/NavBar';
+import { BottomNav } from '@/app/components/BottomNav';
 
 type QuestionType = 'mc' | 'short' | 'long';
 
@@ -34,14 +37,9 @@ function isMC(q: Question): q is MCQuestion {
   return 'options' in q;
 }
 
-const TYPE_LABELS: Record<QuestionType, { label: string; desc: string }> = {
-  mc:    { label: 'Multiple Choice', desc: '4 options, click to answer' },
-  short: { label: 'Short Question',  desc: '1–3 sentence answer' },
-  long:  { label: 'Long Question',   desc: 'Detailed essay answer' },
-};
-
 export default function QuizPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [text, setText] = useState('');
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -64,6 +62,8 @@ export default function QuizPage() {
   const [grading, setGrading] = useState(false);
 
   const [finished, setFinished] = useState(false);
+  const [savedFlashcardsId, setSavedFlashcardsId] = useState<string | null>(null);
+  const [savingFlashcards, setSavingFlashcards] = useState(false);
 
   async function handleFilesUpload(files: FileList | File[]) {
     setUploading(true);
@@ -185,6 +185,46 @@ export default function QuizPage() {
     if (activeType === 'mc') setMcSelected(mcAnswers[prev]);
   }
 
+  async function handleSaveAsFlashcards() {
+    setSavingFlashcards(true);
+    try {
+      const wrongKeyPoints = activeType === 'mc'
+        ? questions.flatMap((q, i) => {
+            const mc = q as MCQuestion;
+            if (mcAnswers[i] === mc.answer) return [];
+            return [{
+              en: mc.question,
+              zh: '',
+              detail: mc.explanation || `Correct answer: ${mc.answer}`,
+              detailZh: mc.explanationZh || '',
+              source: `Correct: ${mc.answer}`,
+            }];
+          })
+        : questions.flatMap((q, i) => {
+            const oq = q as OpenQuestion;
+            const grade = gradeResults[i];
+            if (!grade || grade.score >= 7) return [];
+            return [{
+              en: oq.question,
+              zh: '',
+              detail: grade.modelAnswer || oq.modelAnswer,
+              detailZh: grade.modelAnswerZh || '',
+              source: '',
+            }];
+          });
+      if (wrongKeyPoints.length === 0) return;
+      const record = await saveAnalysis({
+        title: `Quiz Review — ${new Date().toLocaleDateString()}`,
+        summary: `Flashcards from ${wrongKeyPoints.length} wrong answer${wrongKeyPoints.length !== 1 ? 's' : ''} in your quiz.`,
+        keyPoints: wrongKeyPoints,
+        highlights: [],
+      });
+      setSavedFlashcardsId(record.id);
+    } finally {
+      setSavingFlashcards(false);
+    }
+  }
+
   function handleRestart() {
     setCurrent(0);
     setMcSelected(null);
@@ -215,25 +255,25 @@ export default function QuizPage() {
     ? !!mcSelected
     : !!gradeResults[current];
 
+  const typeOptions: { type: QuestionType; label: string; desc: string }[] = [
+    { type: 'mc',    label: t('mcLabel'),    desc: t('mcDesc') },
+    { type: 'short', label: t('shortLabel'), desc: t('shortDesc') },
+    { type: 'long',  label: t('longLabel'),  desc: t('longDesc') },
+  ];
+
   if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 pb-24">
         <div className="max-w-2xl mx-auto">
-          <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Quiz Generator</h1>
-          <p className="text-gray-500 mb-6">Upload your notes and AI will generate questions to test your knowledge.</p>
+          <NavBar back="/" title={t('quizTitle')} />
+          <p className="text-gray-500 mb-6 -mt-2">{t('quizDesc')}</p>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-3">Question Type</p>
+            <p className="text-sm font-medium text-gray-700 mb-3">{t('questionType')}</p>
             <div className="grid grid-cols-3 gap-2">
-              {(Object.entries(TYPE_LABELS) as [QuestionType, typeof TYPE_LABELS[QuestionType]][]).map(([type, { label, desc }]) => (
-                <button
-                  key={type}
-                  onClick={() => setQuestionType(type)}
-                  className={`p-3 rounded-lg border text-left transition ${questionType === type ? 'border-violet-400 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}
-                >
+              {typeOptions.map(({ type, label, desc }) => (
+                <button key={type} onClick={() => setQuestionType(type)}
+                  className={`p-3 rounded-lg border text-left transition ${questionType === type ? 'border-violet-400 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
                   <p className={`text-sm font-medium ${questionType === type ? 'text-violet-700' : 'text-gray-800'}`}>{label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
                 </button>
@@ -251,97 +291,113 @@ export default function QuizPage() {
               <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt" multiple className="hidden"
                 onChange={e => { if (e.target.files?.length) handleFilesUpload(e.target.files); e.target.value = ''; }} />
               {uploading ? (
-                <p className="text-sm text-violet-500 font-medium">Reading files...</p>
+                <p className="text-sm text-violet-500 font-medium">{t('readingFiles')}</p>
               ) : fileNames.length > 0 ? (
                 <div>
                   <div className="flex flex-wrap gap-1.5 justify-center mb-1">
                     {fileNames.map(n => <span key={n} className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{n}</span>)}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Click to add more files</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('clickAddMore')}</p>
                 </div>
               ) : (
                 <>
                   <svg className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  <p className="text-sm text-gray-500">Upload PDF, Word, or TXT files</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Select multiple files or drag and drop</p>
+                  <p className="text-sm text-gray-500">{t('uploadFiles')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('dragDrop')}</p>
                 </>
               )}
             </div>
             <div className="flex items-center gap-3 mb-3">
               <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400">or paste text</span>
+              <span className="text-xs text-gray-400">{t('orPasteText')}</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
             <textarea
               className="w-full h-40 text-sm text-gray-700 border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400"
-              placeholder="Paste your notes or study material here..."
+              placeholder={t('pasteNotesHere')}
               value={text}
               onChange={e => setText(e.target.value)}
             />
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-            <button
-              onClick={handleGenerate}
-              disabled={loading || uploading || !text.trim()}
-              className="mt-3 w-full py-2.5 rounded-lg bg-violet-600 text-white font-medium text-sm hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {loading ? 'Generating questions...' : `Generate ${TYPE_LABELS[questionType].label} Quiz`}
+            <button onClick={handleGenerate} disabled={loading || uploading || !text.trim()}
+              className="mt-3 w-full py-2.5 rounded-lg bg-violet-600 text-white font-medium text-sm hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+              {loading ? t('generating') : t('generateQuiz')}
             </button>
           </div>
         </div>
+        <BottomNav />
       </div>
     );
   }
 
   if (finished) {
+    const ratio = activeType === 'mc' ? mcScore / questions.length : openScore / 10;
+    const wrongCount = activeType === 'mc'
+      ? mcAnswers.filter((a, i) => a !== (questions[i] as MCQuestion)?.answer).length
+      : gradeResults.filter(r => r && r.score < 7).length;
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 pb-24">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              (activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.8 ? 'bg-green-100' :
-              (activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.5 ? 'bg-yellow-100' : 'bg-red-100'
-            }`}>
-              <span className={`text-2xl font-bold ${
-                (activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.8 ? 'text-green-600' :
-                (activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.5 ? 'text-yellow-600' : 'text-red-600'
-              }`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${ratio >= 0.8 ? 'bg-green-100' : ratio >= 0.5 ? 'bg-yellow-100' : 'bg-red-100'}`}>
+              <span className={`text-2xl font-bold ${ratio >= 0.8 ? 'text-green-600' : ratio >= 0.5 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {activeType === 'mc' ? `${mcScore}/${questions.length}` : `${openScore}/10`}
               </span>
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">
-              {(activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.8 ? 'Excellent!' :
-               (activeType === 'mc' ? mcScore / questions.length : openScore / 10) >= 0.5 ? 'Good effort!' : 'Keep studying!'}
+              {ratio >= 0.8 ? t('excellent') : ratio >= 0.5 ? t('goodEffort') : t('keepStudying')}
             </h2>
             <p className="text-gray-500 text-sm mb-6">
               {activeType === 'mc'
-                ? `You got ${mcScore} out of ${questions.length} correct (${Math.round(mcScore / questions.length * 100)}%)`
-                : `Average score: ${openScore}/10`}
+                ? `${t('youGot')} ${mcScore} ${t('outOf')} ${questions.length} ${t('correct2')} (${Math.round(ratio * 100)}%)`
+                : `${t('averageScore')} ${openScore}/10`}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-3 justify-center mb-4">
               <button onClick={handleRestart} className="px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition">
-                Try Again
+                {t('tryAgain')}
               </button>
               <button onClick={() => setQuestions([])} className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition">
-                New Quiz
+                {t('newQuiz')}
               </button>
             </div>
+            {wrongCount > 0 && (
+              <div className="border-t border-gray-100 pt-4">
+                {savedFlashcardsId ? (
+                  <button
+                    onClick={() => router.push(`/flashcards?id=${savedFlashcardsId}`)}
+                    className="w-full py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
+                  >
+                    {t('openFlashcards')} →
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSaveAsFlashcards}
+                    disabled={savingFlashcards}
+                    className="w-full py-2.5 border border-violet-200 text-violet-600 text-sm font-medium rounded-lg hover:bg-violet-50 disabled:opacity-50 transition"
+                  >
+                    {savingFlashcards ? t('saving') : `${t('saveWrongAsFlashcards')} (${wrongCount})`}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
+        <BottomNav />
       </div>
     );
   }
 
+  const activeLabel = typeOptions.find(o => o.type === activeType)?.label ?? activeType;
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pb-24">
       <div className="max-w-2xl mx-auto">
-        <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
-          ← Back to Dashboard
-        </button>
+        <NavBar back="/" />
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-sm text-gray-500">Question {current + 1} of {questions.length}</span>
-            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 font-medium">{TYPE_LABELS[activeType].label}</span>
+            <span className="text-sm text-gray-500">{t('question')} {current + 1} {t('questionOf')} {questions.length}</span>
+            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 font-medium">{activeLabel}</span>
           </div>
           <div className="flex gap-1">
             {questions.map((_, i) => {
@@ -375,7 +431,7 @@ export default function QuizPage() {
               </div>
               {mcSelected && (
                 <div className={`mt-4 p-3 rounded-lg text-sm ${mcSelected === q.answer ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  <span className="font-semibold">{mcSelected === q.answer ? 'Correct! ' : 'Incorrect. '}</span>
+                  <span className="font-semibold">{mcSelected === q.answer ? t('correct') : t('incorrect')} </span>
                   {q.explanation}
                   {q.explanationZh && (
                     <p className="mt-1.5 pt-1.5 border-t border-current border-opacity-20 text-xs opacity-80">{q.explanationZh}</p>
@@ -389,7 +445,7 @@ export default function QuizPage() {
             <>
               <textarea
                 className={`w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 ${activeType === 'long' ? 'h-40' : 'h-24'}`}
-                placeholder={activeType === 'short' ? 'Write your answer in 1–3 sentences...' : 'Write a detailed answer...'}
+                placeholder={activeType === 'short' ? t('writeShort') : t('writeLong')}
                 value={openAnswers[current]}
                 onChange={e => setOpenAnswers(prev => prev.map((a, i) => i === current ? e.target.value : a))}
                 disabled={!!gradeResults[current]}
@@ -400,7 +456,7 @@ export default function QuizPage() {
                   disabled={grading || !openAnswers[current].trim()}
                   className="mt-3 w-full py-2 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  {grading ? 'Grading...' : 'Submit Answer'}
+                  {grading ? t('grading') : t('submitAnswer')}
                 </button>
               )}
               {gradeResults[current] && (
@@ -413,7 +469,7 @@ export default function QuizPage() {
                   </div>
                   <p className="text-sm text-violet-600">{gradeResults[current]!.feedbackZh}</p>
                   <div className="border-t border-gray-100 pt-3">
-                    <p className="text-xs font-medium text-gray-500 mb-1">Model Answer</p>
+                    <p className="text-xs font-medium text-gray-500 mb-1">{t('modelAnswer')}</p>
                     <p className="text-sm text-gray-700">{gradeResults[current]!.modelAnswer}</p>
                     <p className="text-sm text-violet-600 mt-1">{gradeResults[current]!.modelAnswerZh}</p>
                   </div>
@@ -430,10 +486,11 @@ export default function QuizPage() {
           </button>
           <button onClick={handleNext} disabled={!canProceed}
             className="flex-1 py-2 text-sm font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition">
-            {current + 1 === questions.length ? 'Finish' : 'Next →'}
+            {current + 1 === questions.length ? t('finish') : t('next')}
           </button>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 }

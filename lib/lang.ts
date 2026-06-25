@@ -78,8 +78,19 @@ const strings = {
   sugQ2: { zh: '最重要的概念係咩？', en: 'What are the most important concepts?' },
   sugQ3: { zh: '俾一個實際例子', en: 'Give me a real-world example' },
 
-  // Quiz
-  quizTitle: { zh: '測驗生成器', en: 'Quiz Generator' },
+  // Dashboard — missing keys
+  wrongToReview: { zh: '題待複習', en: 'to review' },
+  keyPointsCount: { zh: '個重點', en: 'key points' },
+
+  // History — missing keys
+  recordsCount: { zh: '條記錄', en: 'records saved' },
+  noResults: { zh: '找不到結果', en: 'No results found' },
+
+  // Analyze — missing keys
+  extractingKP: { zh: '正在提取重點...', en: 'Extracting key points...' },
+  fullText: { zh: '原文重點標示', en: 'Full Text with Highlights' },
+
+  // Quiz { zh: '測驗生成器', en: 'Quiz Generator' },
   quizDesc: { zh: '上載你的筆記，AI 會生成題目測試你的知識。', en: 'Upload your notes and AI will generate questions to test your knowledge.' },
   questionType: { zh: '題目類型', en: 'Question Type' },
   mcLabel: { zh: '選擇題', en: 'Multiple Choice' },
@@ -110,6 +121,12 @@ const strings = {
   gotCorrect: { zh: (s: number, t: number) => `答對 ${s}/${t} 題（${Math.round(s/t*100)}%）`, en: (s: number, t: number) => `You got ${s} out of ${t} correct (${Math.round(s/t*100)}%)` },
   tryAgain: { zh: '重新嘗試', en: 'Try Again' },
   newQuiz: { zh: '新測驗', en: 'New Quiz' },
+  generateQuiz: { zh: '生成測驗', en: 'Generate Quiz' },
+  questionOf: { zh: '/', en: 'of' },
+  youGot: { zh: '你答對了', en: 'You got' },
+  outOf: { zh: '題中的', en: 'out of' },
+  correct2: { zh: '題正確', en: 'correct' },
+  averageScore: { zh: '平均分：', en: 'Average score:' },
 
   // Flashcards
   tapReveal: { zh: '點擊卡片查看解釋', en: 'Tap card to reveal' },
@@ -148,6 +165,15 @@ const strings = {
   open: { zh: '打開', en: 'Open' },
   deleteRecord: { zh: '刪除記錄', en: 'Delete record' },
   newBtn: { zh: '+ 新增', en: '+ New' },
+
+  // Review — weakness analysis
+  analyzeWeakTopics: { zh: 'AI 分析弱項', en: 'Analyze Weak Topics' },
+  analyzingTopics: { zh: '正在分析...', en: 'Analyzing...' },
+  weakTopicsTitle: { zh: '弱項分析', en: 'Weak Topic Analysis' },
+
+  // Quiz — save as flashcards
+  saveWrongAsFlashcards: { zh: '將錯題儲存為閃卡', en: 'Save wrong answers as flashcards' },
+  openFlashcards: { zh: '打開閃卡', en: 'Open Flashcards' },
 
   // Settings
   settingsTitle: { zh: '設定', en: 'Settings' },

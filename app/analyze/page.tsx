@@ -6,6 +6,7 @@ import { useLang } from '@/lib/LangContext';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { BottomNav } from '@/app/components/BottomNav';
 
 interface KeyPoint {
   en: string;
@@ -248,7 +249,7 @@ function AnalyzeContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pb-24">
       <div className="max-w-3xl mx-auto">
         <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
           {t('backToDashboard')}
@@ -477,8 +478,11 @@ function AnalyzeContent() {
 
 export default function AnalyzePage() {
   return (
-    <Suspense>
-      <AnalyzeContent />
-    </Suspense>
+    <>
+      <Suspense>
+        <AnalyzeContent />
+      </Suspense>
+      <BottomNav />
+    </>
   );
 }
