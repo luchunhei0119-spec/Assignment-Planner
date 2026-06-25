@@ -14,14 +14,34 @@ export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') setReady(true);
+    const isRecoveryUrl =
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('code=');
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && isRecoveryUrl && session)) {
+        setReady(true);
+        setError('');
+      }
     });
-    // Handle case where recovery session is already active (page reload)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
-      else setError('Invalid or expired reset link. Please request a new one.');
-    });
+
+    if (!isRecoveryUrl) {
+      // No recovery token in URL — check for an existing session immediately
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) setReady(true);
+        else setError('Invalid or expired reset link. Please request a new one.');
+      });
+    } else {
+      // Recovery URL detected — give Supabase time to process the hash before giving up
+      const fallback = setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) setReady(true);
+          else setError('Invalid or expired reset link. Please request a new one.');
+        });
+      }, 3000);
+      return () => { subscription.unsubscribe(); clearTimeout(fallback); };
+    }
+
     return () => subscription.unsubscribe();
   }, []);
 
