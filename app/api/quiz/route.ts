@@ -1,4 +1,4 @@
-import { getClient, unauthorized } from '@/lib/getClient';
+import { getClient, unauthorized, handleClientError } from '@/lib/getClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 function detectLang(text: string): 'zh' | 'en' {
@@ -8,7 +8,7 @@ function detectLang(text: string): 'zh' | 'en' {
 }
 
 export async function POST(req: NextRequest) {
-  let client; try { client = await getClient(req); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req); } catch (e) { return handleClientError(e); }
   const { text, count = 10, questionType = 'mc' } = await req.json();
   if (!text?.trim()) {
     return NextResponse.json({ error: 'No text provided' }, { status: 400 });

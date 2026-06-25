@@ -1,8 +1,8 @@
-import { getClient, unauthorized } from '@/lib/getClient';
+import { getClient, unauthorized, handleClientError } from '@/lib/getClient';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  let client; try { client = await getClient(req); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req); } catch (e) { return handleClientError(e); }
   const { wrongAnswers } = await req.json();
   if (!wrongAnswers?.length) {
     return NextResponse.json({ error: 'No wrong answers provided' }, { status: 400 });

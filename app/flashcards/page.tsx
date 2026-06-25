@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getAnalysis, type KeyPoint } from '@/lib/history';
 import { Suspense } from 'react';
+import { useLang } from '@/lib/LangContext';
+import { LangToggle } from '@/app/components/LangToggle';
+import { NavBar } from '@/app/components/NavBar';
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
@@ -11,6 +14,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 function FlashcardsContent() {
   const router = useRouter();
+  const { t } = useLang();
   const params = useSearchParams();
   const id = params.get('id');
 
@@ -99,11 +103,11 @@ function FlashcardsContent() {
               )}
               <button onClick={() => handleRestart(false)}
                 className="w-full py-3 bg-gray-100 text-gray-700 text-sm font-medium rounded-2xl hover:bg-gray-200 transition">
-                Shuffle all cards
+                {t('shuffleAll')}
               </button>
               <button onClick={() => router.push('/')}
                 className="w-full py-3 text-gray-400 text-sm font-medium hover:text-gray-600 transition">
-                Back to Dashboard
+                {t('backToDashboard')}
               </button>
             </div>
           </div>
@@ -117,9 +121,12 @@ function FlashcardsContent() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
         <button onClick={() => router.push('/')} className="text-sm text-gray-400 hover:text-gray-700 flex items-center gap-1 transition">
-          ← Back
+          ← {t('back')}
         </button>
-        <span className="text-sm text-gray-400">{index + 1} / {cards.length}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-400">{index + 1} / {cards.length}</span>
+          <LangToggle />
+        </div>
       </div>
 
       {/* Progress bar */}

@@ -29,3 +29,14 @@ export function unauthorized() {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+export function handleClientError(e: unknown): Response {
+  const msg = e instanceof Error ? e.message : '';
+  if (msg.startsWith('SERVER_CONFIG')) {
+    return new Response(JSON.stringify({ error: msg.replace('SERVER_CONFIG: ', '') }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  return unauthorized();
+}

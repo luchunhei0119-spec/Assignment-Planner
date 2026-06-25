@@ -1,11 +1,14 @@
 'use client';
 
-import { apiFetch, hasAuth } from '@/lib/apiFetch';
+import { apiFetch } from '@/lib/apiFetch';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLang } from '@/lib/LangContext';
+import { NavBar } from '@/app/components/NavBar';
 
 export default function TranslatePage() {
   const router = useRouter();
+  const { t } = useLang();
   const [text, setText] = useState('');
   const [translated, setTranslated] = useState('');
   const [targetLang, setTargetLang] = useState<'zh' | 'en'>('zh');
@@ -65,12 +68,8 @@ export default function TranslatePage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
-          ← Back to Dashboard
-        </button>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Translate</h1>
-        <p className="text-gray-500 mb-6">Translate between English and Traditional Chinese.</p>
+        <NavBar back="/" title={t('translateTitle')} />
+        <p className="text-gray-500 mb-6 -mt-2">{t('translateDesc')}</p>
 
         <div className="flex items-center gap-3 mb-4">
           <div className="flex-1 text-center text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg py-2">

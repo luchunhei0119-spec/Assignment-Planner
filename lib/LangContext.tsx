@@ -145,6 +145,19 @@ const strings: Record<string, Record<Lang, string | ((...args: number[]) => stri
   input:            { zh: '輸入', en: 'Input' },
   translation:      { zh: '翻譯', en: 'Translation' },
   uploadFile:       { zh: '上載檔案', en: 'Upload files' },
+  tasks:            { zh: '個任務', en: 'tasks' },
+  wrongToReview:    { zh: '條題目待複習', en: 'questions to review' },
+  keyPointsCount:   { zh: '個重點', en: 'key points' },
+  recordsCount:     { zh: '條記錄', en: 'records' },
+  generateQuiz:     { zh: '生成測驗', en: 'Generate Quiz' },
+  backToDashboardLabel: { zh: '返回主頁', en: 'Back to Dashboard' },
+  questionOf:       { zh: '題', en: 'of' },
+  question:         { zh: '題目', en: 'Question' },
+  youGot:           { zh: '你答對了', en: 'You got' },
+  outOf:            { zh: '題', en: 'out of' },
+  correct2:         { zh: '題正確', en: 'correct' },
+  averageScore:     { zh: '平均分：', en: 'Average score:' },
+  noResults:        { zh: '找不到結果', en: 'No results found' },
 };
 
 const LangContext = createContext<LangContextType>({

@@ -1,15 +1,18 @@
 'use client';
 
-import { apiFetch, hasAuth } from '@/lib/apiFetch';
+import { apiFetch } from '@/lib/apiFetch';
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ExtractedAssignment } from '@/lib/types';
 import { addAssignments, generateId } from '@/lib/store';
+import { useLang } from '@/lib/LangContext';
+import { NavBar } from '@/app/components/NavBar';
 
 type ReviewItem = ExtractedAssignment & { selected: boolean };
 
 export default function ImportPage() {
   const router = useRouter();
+  const { t } = useLang();
   const [syllabus, setSyllabus] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -85,12 +88,8 @@ export default function ImportPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-3xl mx-auto">
-        <button onClick={() => router.push('/')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center gap-1">
-          ← 返回主頁
-        </button>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">從課程大綱匯入</h1>
-        <p className="text-gray-500 mb-6">貼上你的課程大綱，AI 會自動提取所有功課及截止日期。</p>
+        <NavBar back="/" title={t('importTitle')} />
+        <p className="text-gray-500 mb-6 -mt-2">{t('importDesc')}</p>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
           <div

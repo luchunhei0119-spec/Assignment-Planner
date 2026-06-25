@@ -1,8 +1,8 @@
-import { getClient, unauthorized } from '@/lib/getClient';
+import { getClient, unauthorized, handleClientError } from '@/lib/getClient';
 import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
-  let client; try { client = await getClient(req); } catch { return unauthorized(); }
+  let client; try { client = await getClient(req); } catch (e) { return handleClientError(e); }
   const { docText, messages } = await req.json();
   if (!messages?.length) {
     return new Response(JSON.stringify({ error: 'No messages provided' }), { status: 400 });
