@@ -25,7 +25,7 @@ function friendlyError(msg: string): { type: ErrorType; text: string } {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -88,6 +88,25 @@ export default function LoginPage() {
     }
   }
 
+  async function handleForgotPassword() {
+    if (!email.trim()) return;
+    setLoading(true);
+    clearMessages();
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      setMessage('Password reset link sent! Check your email.');
+      setPassword('');
+    } catch (e: unknown) {
+      const raw = e instanceof Error ? e.message : 'Something went wrong';
+      setError(raw);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-blue-50 flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
@@ -112,6 +131,10 @@ export default function LoginPage() {
               className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${mode === 'signup' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
               Sign Up
             </button>
+            <button onClick={() => { setMode('forgot-password'); clearMessages(); }}
+              className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${mode === 'forgot-password' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>
+              Reset Password
+            </button>
           </div>
 
           <div className="space-y-3 mb-5">
@@ -123,15 +146,28 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
             />
-            <input
-              type="password"
-              className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
-            />
+            {mode !== 'forgot-password' && (
+              <input
+                type="password"
+                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                placeholder="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSubmit(); }}
+              />
+            )}
           </div>
+
+          {mode === 'login' && (
+            <div className="text-right mb-4 -mt-2">
+              <button
+                onClick={() => { setMode('forgot-password'); clearMessages(); }}
+                className="text-xs text-violet-500 hover:text-violet-700 font-medium"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-2xl">
@@ -154,11 +190,11 @@ export default function LoginPage() {
           )}
 
           <button
-            onClick={handleSubmit}
-            disabled={loading || !email.trim() || !password.trim()}
+            onClick={mode === 'forgot-password' ? handleForgotPassword : handleSubmit}
+            disabled={loading || !email.trim() || (mode !== 'forgot-password' && !password.trim())}
             className="w-full py-3.5 rounded-2xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? 'Loading...' : mode === 'login' ? 'Log In →' : 'Create Account →'}
+            {loading ? 'Loading...' : mode === 'login' ? 'Log In →' : mode === 'signup' ? 'Create Account →' : 'Send Reset Link →'}
           </button>
         </div>
 
